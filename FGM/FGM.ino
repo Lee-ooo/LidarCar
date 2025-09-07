@@ -55,6 +55,7 @@ void loop() {
 
     if (startBit) {
       double front_dist = 0;
+      max_distance = 1;
       int c_f = 0;
       for (int i = 170; i <= 190; i++) { front_dist += distances[i]; c_f++; }
       front_dist /= c_f;
@@ -68,39 +69,45 @@ void loop() {
         double x1 = 0, y1 = 0, x2 = 0, y2 = 0;
         double max_spacing = -1;
         double xc = 0, yc = 0;
+        double d1 = 0, d2 = 0, dist1 = 0, dist2 = 0;
         bool flag = false;
-        if(last_velocity > 0) max_distance = constrain(double(last_velocity)/210.0, 0.8, 1.2);
-        Serial.print(max_distance);
-        Serial.print(" ");
+        // if(last_velocity > 0) max_distance = constrain(double(last_velocity)/210.0, 0.8, 1.2);
 
         // ★ ND: 记录“最大缝隙端点”的角度，供邻域差分用
         double bestLx = 0, bestLy = 0; int bestLa = -1;
         double bestRx = 0, bestRy = 0; int bestRa = -1;
 
-        for (int angle_deg = 45; angle_deg < 315; angle_deg++) {
-          distance = distances[angle_deg];
-          if (distance > min_distance && distance < max_distance) {
-            double angle_rad = (double)angle_deg * M_PI / 180.0;
+        for(int i = 0; i < 2; i++){
+          Serial.print(max_distance);
+          Serial.print(" ");
+          x1 = 0, x2 = 0, y1 = 0, y2 = 0, xc = 0, yc = 0, d1 = 0, d2 = 0, dist1 = 0, dist2 = 0, max_spacing = -1, flag = false;
+          for (int angle_deg = 45; angle_deg < 315; angle_deg++) {
+            distance = distances[angle_deg];
+            if (distance > min_distance && distance < max_distance) {
+              double angle_rad = (double)angle_deg * M_PI / 180.0;
 
-            x1 = x2; y1 = y2;
-            x2 = cos(angle_rad) * distance;
-            y2 = sin(angle_rad) * distance;
+              x1 = x2; y1 = y2; d1 = d2;
+              d2 = distance;
+              x2 = cos(angle_rad) * distance;
+              y2 = sin(angle_rad) * distance;
 
-            if (flag) {
-              double dx = x1 - x2, dy = y1 - y2;
-              double spacing = sqrt(dx * dx + dy * dy);
-              if (spacing > max_spacing) {
-                max_spacing = spacing;
-                xc = (x1 + x2) * 0.5;
-                yc = (y1 + y2) * 0.5;
-                bestLx = x1; bestLy = y1; bestLa = angle_deg - 1; // 上一个有效点的角
-                bestRx = x2; bestRy = y2; bestRa = angle_deg;     // 当前有效点的角
+              if (flag) {
+                double dx = x1 - x2, dy = y1 - y2;
+                double spacing = sqrt(dx * dx + dy * dy);
+                if (spacing > max_spacing) {
+                  max_spacing = spacing;
+                  dist1 = d1; dist2 = d2;
+                  xc = (x1 + x2) * 0.5;
+                  yc = (y1 + y2) * 0.5;
+                  bestLx = x1; bestLy = y1; bestLa = angle_deg - 1; // 上一个有效点的角
+                  bestRx = x2; bestRy = y2; bestRa = angle_deg;     // 当前有效点的角
+                }
               }
+              flag = true;
             }
-            flag = true;
           }
+          max_distance = constrain(min(dist1, dist2), 0.8, 1);
         }
-
         // ========== 邻域差分法切线偏置 ========== //
         double theta;
         if (max_spacing < 0) {
@@ -161,22 +168,24 @@ void loop() {
             normalize2(tx, ty);
           }
 
-          const double ALPHA = 0.75;  // 中线/切线融合权重
+          const double ALPHA = 1;  // 中线/切线融合权重
           double vx = ALPHA * vmx + (1.0 - ALPHA) * tx;
           double vy = ALPHA * vmy + (1.0 - ALPHA) * ty;
           theta = atan2(vy, vx);
         }
         // ====== 邻域差分法切线偏置结束 ====== //
         if(theta < 0) theta += 2*M_PI;
-        Serial.println(theta/M_PI*180 - 180);
+        Serial.print(theta/M_PI*180 - 180);
+        Serial.print(" ");
         double e = theta - M_PI;
         e = atan2(sin(e), cos(e));
         double de = e - e_last;
         e_last = e;
         servo_angle = 55 * e + 15 * de;
         int deg = servo_angle + servo_offset;
+        Serial.println(deg);
 
-        int velocity = 180 + 30 * exp(-1 * double(M_PI - abs(theta)) * double(M_PI - abs(theta)) * 8.2);
+        int velocity = 150 + 30 * exp(-1 * double(M_PI - abs(theta)) * double(M_PI - abs(theta)) * 8.2);
         int d_vel = last_velocity - velocity;
         int vel = velocity + 0.2 * double(d_vel);
 
