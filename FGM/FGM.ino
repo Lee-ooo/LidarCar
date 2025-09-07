@@ -10,7 +10,7 @@ RPLidar lidar;  // 创建激光雷达对象
 Servo servo;    // 创建舵机对象
 
 int servo_angle = 90;
-int servo_offset = -3;  // 用于调整舵机安装误差
+int servo_offset = 13;  // 用于调整舵机安装误差
 int last_velocity = 0;
 double e_last = 0;  // PID 误差缓存
 int count = 0;      // 对每一圈扫描点个数进行计数
@@ -54,16 +54,14 @@ void loop() {
     count++;
 
     if (startBit) {
-      double front_dist = 0;
       max_distance = 1;
+
+
+
+      double front_dist = 0;
       int c_f = 0;
       for (int i = 170; i <= 190; i++) { front_dist += distances[i]; c_f++; }
       front_dist /= c_f;
-
-      double avoid_dist = 0;
-      int c_a = 0;
-      for (int i = 187; i <= 193; i++) { avoid_dist += distances[i]; c_a++; }
-      avoid_dist /= c_a;
 
       if (count >= 50) {
         double x1 = 0, y1 = 0, x2 = 0, y2 = 0;
@@ -173,6 +171,13 @@ void loop() {
           double vy = ALPHA * vmy + (1.0 - ALPHA) * ty;
           theta = atan2(vy, vx);
         }
+
+        double lr_imp = 5*log(left_dist/right_dist+1e-7);
+        Serial.print("lr_imp:");
+        Serial.print(lr_imp);
+        Serial.print(" ");
+        theta += lr_imp;//左右比值修正
+
         // ====== 邻域差分法切线偏置结束 ====== //
         if(theta < 0) theta += 2*M_PI;
         Serial.print(theta/M_PI*180 - 180);
@@ -181,7 +186,7 @@ void loop() {
         e = atan2(sin(e), cos(e));
         double de = e - e_last;
         e_last = e;
-        servo_angle = 55 * e + 15 * de;
+        servo_angle = 55 * e + 5 * de;
         int deg = servo_angle + servo_offset;
         Serial.println(deg);
 
