@@ -17,7 +17,7 @@ int count = 0;      // 对每一圈扫描点个数进行计数
 
 double distances[360] = { 0 };     // 定义数组 存储激光雷达数据
 const double min_distance = 0.05;  // 雷达数据兴趣区间 最小值(盲区)
-const double max_distance = 1;   // 雷达数据兴趣区间 最大值
+const double max_distance = 1.0;   // 雷达数据兴趣区间 最大值
 // int c = 0;
 
 void setup() {
@@ -59,12 +59,12 @@ void loop() {
       front_dist /= c_f;
       double left_dist = 0;
       int c_l = 0;
-      for (int i = 225; i <= 270; i++) { left_dist += distances[i]; c_l++; }
+      for (int i = 240; i <= 270; i++) { left_dist += distances[i]; c_l++; }
       left_dist /= c_l;
 
       double right_dist = 0;
       int c_r = 0;
-      for (int i = 90; i <= 135; i++) { right_dist += distances[i]; c_r++; }
+      for (int i = 90; i <= 150; i++) { right_dist += distances[i]; c_r++; }
       right_dist /= c_r;
       if (count >= 50) {
         double x1, y1 = 0;       // 前一个扫描点位置
@@ -103,7 +103,7 @@ void loop() {
         double theta = atan2(yc, xc);  // 计算期望朝向
         if(theta < 0) theta += 2*M_PI;
         Serial.printf("%f ", theta/M_PI*180-180);
-        double lr_imp = 10*log(left_dist/right_dist+1e-7)/180*M_PI;
+        double lr_imp = 16*log(left_dist/right_dist+1e-7)/180*M_PI;
         Serial.printf("lr_imp:%f ", lr_imp*180/M_PI);
         Serial.printf("%f ", theta/M_PI*180-180);
         theta += lr_imp;//左右比值修正
@@ -112,17 +112,29 @@ void loop() {
         e = atan2(sin(e), cos(e));     // 将误差角度统一到[-pi, pi]范围
         double de = e - e_last;               // 误差增量
         e_last = e;                           // 缓存误差数据，用于下一次计算误差增量
-        int deg = 70 * e + 5 * de;  // PD控制舵机角度
-        int velocity = 140 + 40 * exp(-1*double(M_PI-abs(theta))*double(M_PI-abs(theta))*8.2);
+        int deg = 65 * e + 5 * de;  // PD控制舵机角度
+        int velocity = 140;
+        // int velocity = 170 + 30 * exp(-1*double(M_PI-abs(theta))*double(M_PI-abs(theta))*8.2);
         int d_vel = last_velocity - velocity;
         int vel = velocity + 0.3 * double(d_vel);
-        double slow_dist = 0.8;
+        double slow_dist = 1.2;
         if(front_dist <= slow_dist)
         {
           // deg *= 1.25;
-          vel *= constrain(front_dist/slow_dist, 0.7, 1);
+          // vel *= constrain(front_dist/slow_dist, 0.75, 1);
         }
-        deg *= (abs(deg) < 20)?1.2:1;
+        switch(abs(deg) / 20){
+          case 0:
+            deg *= 1.35;
+            break;
+          case 1:
+            break;
+          case 2:
+            deg /= 0.85;
+            break;
+          default:
+            break;
+        }
         deg = int(constrain(deg, -70, 70));
         Serial.printf("%d ",deg);
         vel = (vel > 255)?255:vel;
