@@ -10,7 +10,7 @@ RPLidar lidar;  // 创建激光雷达对象
 Servo servo;    // 创建舵机对象
 
 int servo_angle = 90;
-int servo_offset = 13;  // 用于调整舵机安装误差
+int servo_offset = 18;  // 用于调整舵机安装误差
 int last_velocity = 0;
 double e_last = 0;  // PID 误差缓存
 int count = 0;      // 对每一圈扫描点个数进行计数
@@ -64,7 +64,7 @@ void loop() {
 
       double right_dist = 0;
       int c_r = 0;
-      for (int i = 135; i <= 180; i++) { right_dist += distances[i]; c_r++; }
+      for (int i = 90; i <= 135; i++) { right_dist += distances[i]; c_r++; }
       right_dist /= c_r;
       if (count >= 50) {
         double x1, y1 = 0;       // 前一个扫描点位置
@@ -112,24 +112,24 @@ void loop() {
         e = atan2(sin(e), cos(e));     // 将误差角度统一到[-pi, pi]范围
         double de = e - e_last;               // 误差增量
         e_last = e;                           // 缓存误差数据，用于下一次计算误差增量
-        servo_angle = 60 * e + 5 * de;  // PD控制舵机角度
-        int deg = servo_angle + servo_offset;
-        int velocity = 180 + 40 * exp(-1*double(M_PI-abs(theta))*double(M_PI-abs(theta))*8.2);
+        int deg = 70 * e + 5 * de;  // PD控制舵机角度
+        int velocity = 140 + 40 * exp(-1*double(M_PI-abs(theta))*double(M_PI-abs(theta))*8.2);
         int d_vel = last_velocity - velocity;
-        int vel = velocity + 0.2 * double(d_vel);
-        double slow_dist = 0.6;
+        int vel = velocity + 0.3 * double(d_vel);
+        double slow_dist = 0.8;
         if(front_dist <= slow_dist)
         {
-          deg *= 1.25;
+          // deg *= 1.25;
           vel *= constrain(front_dist/slow_dist, 0.7, 1);
         }
-        deg = int(constrain(deg, -55, 55));
+        deg *= (abs(deg) < 20)?1.2:1;
+        deg = int(constrain(deg, -70, 70));
         Serial.printf("%d ",deg);
         vel = (vel > 255)?255:vel;
         // deg = constrain(c-45,-45,45);//阻塞检查
         // c++;
         // c %= 90;
-        servo.write(90 + deg);
+        servo.write(servo_angle  + servo_offset + deg);
         analogWrite(MOTOR_PIN, vel);
         last_velocity = velocity;
         count = 0;
