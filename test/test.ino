@@ -22,9 +22,13 @@ void setup() {
   pinMode(DIR_PIN, OUTPUT);
   pinMode(MOTOR_PIN, OUTPUT);
   digitalWrite(DIR_PIN, HIGH);
-  servo.write(servo_angle + servo_offset + 20);
+  servo.write(servo_angle + servo_offset);
   analogWrite(MOTOR_PIN, 150);
 }
 
 void loop() {
+  i++;
+  i %= 45;
+  servo.write(servo_angle + servo_offset + i);
+  delay(500);
 }
