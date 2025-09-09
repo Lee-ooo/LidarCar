@@ -10,14 +10,14 @@ RPLidar lidar;  // 创建激光雷达对象
 Servo servo;    // 创建舵机对象
 
 int servo_angle = 90;
-int servo_offset = 18;  // 用于调整舵机安装误差
+int servo_offset = 20;  // 用于调整舵机安装误差
 int last_velocity = 0;
 double e_last = 0;  // PID 误差缓存
 int count = 0;      // 对每一圈扫描点个数进行计数
 
 double distances[360] = { 0 };     // 定义数组 存储激光雷达数据
 const double min_distance = 0.05;  // 雷达数据兴趣区间 最小值(盲区)
-const double max_distance = 1;   // 雷达数据兴趣区间 最大值
+const double max_distance = 0.8;   // 雷达数据兴趣区间 最大值
 // int c = 0;
 
 void setup() {
@@ -71,12 +71,12 @@ void loop() {
 
       double left_dist = 0;
       int c_l = 0;
-      for (int i = 240; i <= 270; i++) { left_dist += distances[i]; c_l++; }
+      for (int i = 225; i <= 255; i++) { left_dist += distances[i]; c_l++; }
       left_dist /= c_l;
 
       double right_dist = 0;
       int c_r = 0;
-      for (int i = 90; i <= 150; i++) { right_dist += distances[i]; c_r++; }
+      for (int i = 105; i <= 135; i++) { right_dist += distances[i]; c_r++; }
       right_dist /= c_r;
 
       if (count >= 50) {
@@ -113,45 +113,35 @@ void loop() {
             flag = true;
           }
         }
-        double xm = 0, ym = 0;
-        xm = xc + x_imp;
-        ym = yc + y_imp;
+        // double xm = 0, ym = 0;
+        // xm = xc + x_imp;
+        // ym = yc + y_imp;
         // Serial.printf("%f ", atan2(y_imp, x_imp)/M_PI*180);
-        double theta = atan2(ym, xm);  // 计算期望朝向
-        double lr_imp = 13*log(left_dist/right_dist+1e-7)/180*M_PI;
-        // Serial.printf("lr_imp:%f ", lr_imp*180/M_PI);
-        // Serial.printf("%f ", theta/M_PI*180-180);
-        theta += lr_imp;//左右比值修正
+        double theta = atan2(yc, xc);  // 计算期望朝向
+        double lr_imp = 20*log(left_dist/right_dist+1e-7)/180*M_PI;
+        Serial.printf("lr_imp:%f ", lr_imp*180/M_PI);
+        Serial.printf("%f ", theta/M_PI*180-180);
+        if(left_dist < 0.25 || right_dist < 0.25) theta += lr_imp;//左右比值修正
         if(theta < 0) theta += 2*M_PI;
-        // Serial.printf("%f ", theta/M_PI*180-180);
+        Serial.printf("%f ", theta/M_PI*180-180);
         double e = theta - M_PI;       // 计算期望朝向与实际朝向(pi)的误差
-        // Serial.printf("%f ", e/M_PI*180);
+        Serial.printf("%f ", e/M_PI*180);
         e = atan2(sin(e), cos(e));     // 将误差角度统一到[-pi, pi]范围
         double de = e - e_last;               // 误差增量
         e_last = e;                           // 缓存误差数据，用于下一次计算误差增量
-        int deg = 70 * e + 5 * de;  // PD控制舵机角度
-        deg *= (abs(deg) < 20)?1.35:1;
-        // int velocity = 160 + 40 * exp(-1*double(M_PI-abs(theta))*double(M_PI-abs(theta))*8.2);
-        int velocity = 143;
+        int deg = 45 * e + 5 * de;  // PD控制舵机角度
+        deg *= (abs(deg) < 20)?1.2:1;
+        int velocity = 140;
         int d_vel = last_velocity - velocity;
         int vel = velocity + 0.2 * double(d_vel);
-        // double slow_dist = 0.6;
-        // if(front_dist <= slow_dist)
-        // {
-        //   deg *= 1.25;
-        //   vel *= constrain(front_dist/slow_dist, 0.7, 1);
-        // }
-        deg = int(constrain(deg, -55, 55));
-        // Serial.printf("%d ",deg);
+        deg = int(constrain(deg, -45, 45));
+        Serial.printf("%d ",deg);
         vel = (vel > 255)?255:vel;
-        // deg = constrain(c-45,-45,45);//阻塞检查
-        // c++;
-        // c %= 90;
         servo.write(servo_angle + servo_offset + deg);
         analogWrite(MOTOR_PIN, vel);
         last_velocity = velocity;
         count = 0;
-        // Serial.println();
+        Serial.println();
       }
     }
   } else {  // 出现错误，重新启动雷达

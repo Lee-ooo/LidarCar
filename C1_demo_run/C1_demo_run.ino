@@ -10,7 +10,7 @@ RPLidar lidar;  // 创建激光雷达对象
 Servo servo;    // 创建舵机对象
 
 int servo_angle = 90;
-int servo_offset = 18;  // 用于调整舵机安装误差
+int servo_offset = 20;  // 用于调整舵机安装误差
 int last_velocity = 0;
 double e_last = 0;  // PID 误差缓存
 int count = 0;      // 对每一圈扫描点个数进行计数
@@ -102,18 +102,18 @@ void loop() {
         }
         double theta = atan2(yc, xc);  // 计算期望朝向
         if(theta < 0) theta += 2*M_PI;
-        Serial.printf("%f ", theta/M_PI*180-180);
-        double lr_imp = 16*log(left_dist/right_dist+1e-7)/180*M_PI;
-        Serial.printf("lr_imp:%f ", lr_imp*180/M_PI);
-        Serial.printf("%f ", theta/M_PI*180-180);
-        theta += lr_imp;//左右比值修正
+        // Serial.printf("%f ", theta/M_PI*180-180);
+        // double lr_imp = 16*log(left_dist/right_dist+1e-7)/180*M_PI;
+        // Serial.printf("lr_imp:%f ", lr_imp*180/M_PI);
+        // Serial.printf("%f ", theta/M_PI*180-180);
+        // theta += lr_imp;//左右比值修正
         double e = theta - M_PI;       // 计算期望朝向与实际朝向(pi)的误差
-        Serial.printf("%f ", e/M_PI*180);
+        // Serial.printf("%f ", e/M_PI*180);
         e = atan2(sin(e), cos(e));     // 将误差角度统一到[-pi, pi]范围
         double de = e - e_last;               // 误差增量
         e_last = e;                           // 缓存误差数据，用于下一次计算误差增量
-        int deg = 65 * e + 5 * de;  // PD控制舵机角度
-        int velocity = 140;
+        int deg = 60 * e + 5 * de;  // PD控制舵机角度
+        int velocity = 160;
         // int velocity = 170 + 30 * exp(-1*double(M_PI-abs(theta))*double(M_PI-abs(theta))*8.2);
         int d_vel = last_velocity - velocity;
         int vel = velocity + 0.3 * double(d_vel);
@@ -130,13 +130,13 @@ void loop() {
           case 1:
             break;
           case 2:
-            deg /= 0.85;
+            deg *= 0.9;
             break;
           default:
             break;
         }
         deg = int(constrain(deg, -70, 70));
-        Serial.printf("%d ",deg);
+        // Serial.printf("%d ",deg);
         vel = (vel > 255)?255:vel;
         // deg = constrain(c-45,-45,45);//阻塞检查
         // c++;
@@ -145,7 +145,7 @@ void loop() {
         analogWrite(MOTOR_PIN, vel);
         last_velocity = velocity;
         count = 0;
-        Serial.println();
+        // Serial.println();
       }
     }
   } else {  // 出现错误，重新启动雷达
