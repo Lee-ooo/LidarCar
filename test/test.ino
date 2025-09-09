@@ -11,7 +11,8 @@ Servo servo;    // 创建舵机对象
 
 int servo_angle = 90;
 int servo_offset = 18;  // 用于调整舵机安装误差
-int deg = -20;
+int deg = -50;
+int i = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -22,11 +23,13 @@ void setup() {
   pinMode(DIR_PIN, OUTPUT);
   pinMode(MOTOR_PIN, OUTPUT);
   digitalWrite(DIR_PIN, HIGH);
-  delay(1000);
+  servo.write(servo_angle + servo_offset);
+  analogWrite(MOTOR_PIN, 150);
 }
 
 void loop() {
-  servo.write(servo_angle + servo_offset +deg);
-  digitalWrite(DIR_PIN, HIGH);
-  analogWrite(MOTOR_PIN, 100);
+  i--;
+  if(i < 110) i += 110;
+  i %= 110;
+  servo.write(servo_angle + servo_offset + i - 55);
 }
