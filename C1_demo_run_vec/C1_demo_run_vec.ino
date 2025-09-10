@@ -131,6 +131,9 @@ void loop() {
         // Serial.printf("%f ", atan2(y_imp, x_imp)/M_PI*180);
         double theta = atan2(yc, xc);  // 计算期望朝向
         Serial.printf("%f ", theta/M_PI*180);
+        Serial.printf("%f ", left_dist);
+        Serial.printf("%f ", right_dist);
+        Serial.printf("%f ", left_dist/right_dist+1e-7);
         double lr_imp = 16*log(left_dist/right_dist+1e-7);
         Serial.printf("lr_imp:%f ", lr_imp);
         // Serial.printf("%f ", theta/M_PI*180+180);
@@ -141,7 +144,8 @@ void loop() {
         e = atan2(sin(e), cos(e));     // 将误差角度统一到[-pi, pi]范围
         double de = e - e_last;               // 误差增量
         e_last = e;                           // 缓存误差数据，用于下一次计算误差增量
-        int deg = 45 * e;  // PD控制舵机角度
+        if(abs(de) < 5) e = e_last + 1.2 * de;
+        int deg = 50 * e;  // PD控制舵机角度
         if(left_dist < 0.25 || right_dist < 0.25){
           deg += lr_imp;//左右比值修正
           Serial.print("true ");
@@ -149,7 +153,7 @@ void loop() {
         else{
           Serial.print("false ");
         }
-        int velocity = 140;
+        int velocity = 130 + 15*exp(-1*de*de/36);
         int d_vel = last_velocity - velocity;
         int vel = velocity + 0.2 * double(d_vel);
         // if(abs(deg) < 15 && deg != 0) deg = (int(abs(deg) / 3) + 1)*3*deg/abs(deg);//抵消摩擦
