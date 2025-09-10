@@ -71,12 +71,24 @@ void loop() {
 
       double left_dist = 0;
       int c_l = 0;
-      for (int i = 225; i <= 255; i++) { left_dist += distances[i]; c_l++; }
+      for (int i = 250; i <= 255; i++) {
+        double d = distances[i];
+        if(min_distance < d && d < max_distance){
+          left_dist += distances[i]; 
+          c_l++;
+        }
+      }
       left_dist /= c_l;
 
       double right_dist = 0;
       int c_r = 0;
-      for (int i = 105; i <= 135; i++) { right_dist += distances[i]; c_r++; }
+      for (int i = 105; i <= 110; i++) { 
+        double d = distances[i];
+        if(min_distance < d && d < max_distance){
+          right_dist += distances[i]; 
+          c_r++;
+        }
+      }
       right_dist /= c_r;
 
       if (count >= 50) {
@@ -113,28 +125,35 @@ void loop() {
             flag = true;
           }
         }
-        // double xm = 0, ym = 0;
-        // xm = xc + x_imp;
-        // ym = yc + y_imp;
+        double xm = 0, ym = 0;
+        xm = xc + x_imp;
+        ym = yc + y_imp;
         // Serial.printf("%f ", atan2(y_imp, x_imp)/M_PI*180);
         double theta = atan2(yc, xc);  // 计算期望朝向
+        Serial.printf("%f ", theta/M_PI*180);
         double lr_imp = 16*log(left_dist/right_dist+1e-7);
-        Serial.printf("lr_imp:%f ", lr_imp*180/M_PI);
-        Serial.printf("%f ", theta/M_PI*180+180);
+        Serial.printf("lr_imp:%f ", lr_imp);
+        // Serial.printf("%f ", theta/M_PI*180+180);
         if(theta < 0) theta += 2*M_PI;
-        Serial.printf("%f ", theta/M_PI*180-180);
+        // Serial.printf("%f ", theta/M_PI*180-180);
         double e = theta - M_PI;       // 计算期望朝向与实际朝向(pi)的误差
         Serial.printf("%f ", e/M_PI*180);
         e = atan2(sin(e), cos(e));     // 将误差角度统一到[-pi, pi]范围
         double de = e - e_last;               // 误差增量
         e_last = e;                           // 缓存误差数据，用于下一次计算误差增量
         int deg = 45 * e;  // PD控制舵机角度
-        if(left_dist < 0.25 || right_dist < 0.25) deg += lr_imp;//左右比值修正
+        if(left_dist < 0.25 || right_dist < 0.25){
+          deg += lr_imp;//左右比值修正
+          Serial.print("true ");
+        }
+        else{
+          Serial.print("false ");
+        }
         int velocity = 140;
         int d_vel = last_velocity - velocity;
         int vel = velocity + 0.2 * double(d_vel);
-        if(abs(deg) < 15 && deg != 0) deg = (int(abs(deg) / 3) + 1)*3*deg/abs(deg);//抵消摩擦
-        deg *= 1.25;
+        // if(abs(deg) < 15 && deg != 0) deg = (int(abs(deg) / 3) + 1)*3*deg/abs(deg);//抵消摩擦
+        // deg *= 1.25;
         deg = int(constrain(deg, -45, 45));
         Serial.printf("%d ",deg);
         vel = (vel > 255)?255:vel;
