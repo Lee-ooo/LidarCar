@@ -58,17 +58,6 @@ void loop() {
       }
       front_dist /= c_f;
 
-      double xl = 0, yl = 0;
-      xl = cos(240*M_PI/180) * distances[240] - cos(270*M_PI/180) * distances[270];
-      yl = sin(240*M_PI/180) * distances[240] - sin(270*M_PI/180) * distances[270];
-
-      double xr = 0, yr = 0;
-      xr = cos(120*M_PI/180) * distances[120] - cos(90*M_PI/180) * distances[90];
-      yr = sin(120*M_PI/180) * distances[120] - sin(90*M_PI/180) * distances[90];
-
-      double x_imp = (xl + xr)/2;
-      double y_imp = (yl + yr)/2;
-
       double left_dist = 0;
       int c_l = 0;
       for (int i = 250; i <= 255; i++) {
@@ -125,47 +114,41 @@ void loop() {
             flag = true;
           }
         }
-        double xm = 0, ym = 0;
-        xm = xc + x_imp;
-        ym = yc + y_imp;
-        // Serial.printf("%f ", atan2(y_imp, x_imp)/M_PI*180);
         double theta = atan2(yc, xc);  // 计算期望朝向
-        Serial.printf("%f ", theta/M_PI*180);
-        Serial.printf("%f ", left_dist);
-        Serial.printf("%f ", right_dist);
-        Serial.printf("%f ", left_dist/right_dist+1e-7);
+        // Serial.printf("%f ", theta/M_PI*180);
+        // Serial.printf("%f ", left_dist);
+        // Serial.printf("%f ", right_dist);
+        // Serial.printf("%f ", left_dist/right_dist+1e-7);
         double lr_imp = 16*log(left_dist/right_dist+1e-7);
-        Serial.printf("lr_imp:%f ", lr_imp);
+        // Serial.printf("lr_imp:%f ", lr_imp);
         // Serial.printf("%f ", theta/M_PI*180+180);
         if(theta < 0) theta += 2*M_PI;
         // Serial.printf("%f ", theta/M_PI*180-180);
         double e = theta - M_PI;       // 计算期望朝向与实际朝向(pi)的误差
-        Serial.printf("%f ", e/M_PI*180);
+        // Serial.printf("%f ", e/M_PI*180);
         e = atan2(sin(e), cos(e));     // 将误差角度统一到[-pi, pi]范围
         double de = e - e_last;               // 误差增量
         e_last = e;                           // 缓存误差数据，用于下一次计算误差增量
-        if(abs(de) < 5) e = e_last + 1.2 * de;
+        if(abs(de) < 5) e = e_last + 1.2 * de;//抵消机械结构的松散
         int deg = 50 * e;  // PD控制舵机角度
         if(left_dist < 0.25 || right_dist < 0.25){
           deg += lr_imp;//左右比值修正
-          Serial.print("true ");
+          // Serial.print("true ");
         }
         else{
-          Serial.print("false ");
+          // Serial.print("false ");
         }
-        int velocity = 130 + 15*exp(-1*de*de/36);
+        int velocity = 130 + 25*exp(-1*de*de/36);
         int d_vel = last_velocity - velocity;
         int vel = velocity + 0.2 * double(d_vel);
-        // if(abs(deg) < 15 && deg != 0) deg = (int(abs(deg) / 3) + 1)*3*deg/abs(deg);//抵消摩擦
-        // deg *= 1.25;
         deg = int(constrain(deg, -45, 45));
-        Serial.printf("%d ",deg);
+        // Serial.printf("%d ",deg);
         vel = (vel > 255)?255:vel;
         servo.write(servo_angle + servo_offset + deg);
         analogWrite(MOTOR_PIN, vel);
         last_velocity = velocity;
         count = 0;
-        Serial.println();
+        // Serial.println();
       }
     }
   } else {  // 出现错误，重新启动雷达
