@@ -129,8 +129,8 @@ void loop() {
         e = atan2(sin(e), cos(e));     // 将误差角度统一到[-pi, pi]范围
         double de = e - e_last;               // 误差增量
         e_last = e;                           // 缓存误差数据，用于下一次计算误差增量
-        if(abs(de) < 5) e = e_last + 1.2 * de;//抵消机械结构的松散
-        int deg = 50 * e;  // PD控制舵机角度
+        // if(abs(de) / M_PI * 180 < 5) e = e_last + 1.2 * de;//抵消机械结构的松散
+        int deg = 50 * e + 60 * de;  // PD控制舵机角度
         if(left_dist < 0.25 || right_dist < 0.25){
           deg += lr_imp;//左右比值修正
           // Serial.print("true ");
