@@ -127,21 +127,21 @@ void loop() {
         double e = theta - M_PI;       // 计算期望朝向与实际朝向(pi)的误差
         // Serial.printf("%f ", e/M_PI*180);
         e = atan2(sin(e), cos(e));     // 将误差角度统一到[-pi, pi]范围
+        if(e < 0) e*=1.3;
         double de = e - e_last;               // 误差增量
         e_last = e;                           // 缓存误差数据，用于下一次计算误差增量
-        // if(abs(de) / M_PI * 180 < 5) e = e_last + 1.2 * de;//抵消机械结构的松散
-        int deg = 50 * e + 60 * de;  // PD控制舵机角度
-        if(left_dist < 0.25 || right_dist < 0.25){
+        int deg = 55 * e + 75 * de;  // PD控制舵机角度
+        if((left_dist < 0.25 || right_dist < 0.25) && !isnan(lr_imp)){
           deg += lr_imp;//左右比值修正
           // Serial.print("true ");
         }
         else{
           // Serial.print("false ");
         }
-        int velocity = 130 + 25*exp(-1*de*de/36);
+        int velocity = 140 + 25*exp(-1*de*de/36);
         int d_vel = last_velocity - velocity;
         int vel = velocity + 0.2 * double(d_vel);
-        deg = int(constrain(deg, -45, 45));
+        deg = int(constrain(deg, -55, 45));
         // Serial.printf("%d ",deg);
         vel = (vel > 255)?255:vel;
         servo.write(servo_angle + servo_offset + deg);
