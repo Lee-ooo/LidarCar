@@ -119,7 +119,7 @@ void loop() {
         // Serial.printf("%f ", left_dist);
         // Serial.printf("%f ", right_dist);
         // Serial.printf("%f ", left_dist/right_dist+1e-7);
-        double lr_imp = 16*log(left_dist/right_dist+1e-7);
+        double lr_imp = 13*log(left_dist/right_dist+1e-7);
         // Serial.printf("lr_imp:%f ", lr_imp);
         // Serial.printf("%f ", theta/M_PI*180+180);
         if(theta < 0) theta += 2*M_PI;
@@ -131,14 +131,14 @@ void loop() {
         double de = e - e_last;               // 误差增量
         e_last = e;                           // 缓存误差数据，用于下一次计算误差增量
         int deg = 55 * e + 75 * de;  // PD控制舵机角度
-        if((left_dist < 0.25 || right_dist < 0.25) && !isnan(lr_imp)){
+        if(((left_dist < 0.25 || right_dist < 0.25) && e > 15) && !isnan(lr_imp)){
           deg += lr_imp;//左右比值修正
           // Serial.print("true ");
         }
         else{
           // Serial.print("false ");
         }
-        int velocity = 140 + 25*exp(-1*de*de/36);
+        int velocity = 150 + 25*exp(-1*de*de/36);
         int d_vel = last_velocity - velocity;
         int vel = velocity + 0.2 * double(d_vel);
         deg = int(constrain(deg, -55, 45));
